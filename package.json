@@ -12,9 +12,7 @@
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
-    "commands": [
-    
-    ]
+    "commands": []
   },
   "scripts": {
     "vscode:prepublish": "pnpm run compile",
@@ -25,6 +23,7 @@
     "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
+    "@babel/core": "^7.21.3",
     "@types/babel__traverse": "^7.18.3",
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.1",
