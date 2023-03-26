@@ -1,7 +1,8 @@
 {
-  "name": "helloworld",
-  "displayName": "HelloWorld",
+  "name": "qqzhangyanhua",
+  "displayName": "qqzhangyanhua",
   "description": "",
+  "publisher": "zhangyanhua",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.76.0"
@@ -12,7 +13,26 @@
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
-    "commands": []
+    "commands": [
+      {
+        "command": "formatCheckCode.detectSetTimeout",
+        "title": "detectSetTimeout"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "formatCheckCode.detectSetTimeout",
+        "key": "ctrl+shift+l",
+        "mac": "cmd+shift+l",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "formatCheckCode.removeDiagnostic",
+        "key": "ctrl+shift+;",
+        "mac": "cmd+shift+;",
+        "when": "editorTextFocus"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "pnpm run compile",
@@ -23,7 +43,6 @@
     "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
-    "@babel/core": "^7.21.3",
     "@types/babel__traverse": "^7.18.3",
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.1",
@@ -39,6 +58,7 @@
   },
   "dependencies": {
     "@babel/parser": "^7.21.3",
-    "@babel/traverse": "^7.21.3"
+    "@babel/traverse": "^7.21.3",
+    "vue-template-compiler": "^2.7.14"
   }
 }
