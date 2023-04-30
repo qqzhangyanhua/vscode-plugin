@@ -1,6 +1,6 @@
 {
-  "name": "qqzhangyanhua",
-  "displayName": "qqzhangyanhua",
+  "name": "zyh-remove-console",
+  "displayName": "zyh-remove-console",
   "description": "",
   "publisher": "zhangyanhua",
   "version": "0.0.1",
@@ -15,21 +15,23 @@
   "contributes": {
     "commands": [
       {
-        "command": "formatCheckCode.detectSetTimeout",
-        "title": "detectSetTimeout"
+        "command": "extension.removeConsoleLog",
+        "title": "Remove Console.log"
       }
     ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "extension.removeConsoleLog",
+          "group": "navigation"
+        }
+      ]
+    },
     "keybindings": [
       {
-        "command": "formatCheckCode.detectSetTimeout",
+        "command": "extension.removeConsoleLog",
         "key": "ctrl+shift+l",
         "mac": "cmd+shift+l",
-        "when": "editorTextFocus"
-      },
-      {
-        "command": "formatCheckCode.removeDiagnostic",
-        "key": "ctrl+shift+;",
-        "mac": "cmd+shift+;",
         "when": "editorTextFocus"
       }
     ]
@@ -57,8 +59,13 @@
     "typescript": "^4.9.5"
   },
   "dependencies": {
+    "@babel/core": "^7.21.5",
+    "@babel/generator": "^7.21.5",
     "@babel/parser": "^7.21.3",
+    "@babel/preset-typescript": "^7.21.5",
     "@babel/traverse": "^7.21.3",
+    "@vue/compiler-sfc": "^3.2.47",
+    "semver": "^7.5.0",
     "vue-template-compiler": "^2.7.14"
   }
 }

@@ -1,80 +1,116 @@
-import * as vscode from "vscode";
-import { parse } from "@babel/parser";
-import babelTraverse from "@babel/traverse";
-import { analyzeDocument } from "./isForStatement";
+const vscode = require("vscode");
 const vueCompiler = require("vue-template-compiler");
-function getScriptFromVue(content: any) {
-  const parsed = vueCompiler.parseComponent(content);
-  return parsed.script ? parsed.script.content : "";
-}
-export function activate(context: vscode.ExtensionContext) {
-  const diagnosticCollection =
-    vscode.languages.createDiagnosticCollection("formatCheckCode");
+const vueCompilerSfc = require("@vue/compiler-sfc");
+const semver = require("semver");
+
+import { getVueVersion, removeConsoleLog } from "./utils";
+async function activate(context: any) {
   let disposable = vscode.commands.registerCommand(
-    "formatCheckCode.detectSetTimeout",
-    () => {
+    "extension.removeConsoleLog",
+    async function () {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
+        vscode.window.showErrorMessage("No open text editor");
         return;
       }
-      const isVueFile = editor.document.fileName.endsWith(".vue");
-      const content = editor.document.getText();
-      const diagnostics: any = [];
-      const code = isVueFile ? getScriptFromVue(content) : content;
-      const ast = parse(code, {
-        sourceType: "module",
-      });
-      analyzeDocument( ast,diagnostics);
-      babelTraverse(ast, {
-        CallExpression(path: any) {
-          const callee = path.node.callee;
-          const functionName =
-            callee.name || (callee.property && callee.property.name);
-          if (functionName === "setTimeout") {
-            const loc = path.node.loc;
-            const startPosition = new vscode.Position(
-              loc.start.line - 1,
-              loc.start.column
-            );
-            const endPosition = new vscode.Position(
-              loc.end.line - 1,
-              loc.end.column
-            );
-            const range = new vscode.Range(startPosition, endPosition);
-            const message = isVueFile
-              ? "是什么想不开让你在vue里setTimeout呢?,事件循环整不清?"
-              : "为什么用setTimeout呢?";
-            const diagnostic = new vscode.Diagnostic(
-              range,
-              message,
-              vscode.DiagnosticSeverity.Warning
-            );
-            diagnostics.push(diagnostic);
+
+      const document = editor.document;
+      if (
+        document.languageId !== "javascript" &&
+        document.languageId !== "vue" &&
+        document.languageId !== "typescript"
+      ) {
+        vscode.window.showErrorMessage("只能在.vue或.js或.ts文件中使用该命令");
+        return;
+      }
+      const text = document.getText();
+
+      let newText = text;
+      if (
+        document.languageId === "javascript" ||
+        document.languageId === "typescript"
+      ) {
+        newText = removeConsoleLog(text, document.languageId === "typescript");
+      } else if (document.languageId === "vue") {
+        const vueVersion = await getVueVersion();
+        if (vueVersion) {
+          const parsedVersion = semver.coerce(vueVersion);
+          if (semver.satisfies(parsedVersion, "^2.0.0")) {
+            const parsedVueFile = vueCompiler.parseComponent(text);
+            const isTypeScript =
+              parsedVueFile.script &&
+              (parsedVueFile.script.lang === "ts" ||
+                parsedVueFile.script.lang === "typescript");
+
+            if (parsedVueFile.script) {
+              const updatedScriptContent = removeConsoleLog(
+                parsedVueFile.script.content,
+                isTypeScript
+              );
+              newText = text.replace(
+                parsedVueFile.script.content,
+                updatedScriptContent
+              );
+            }
+          } else if (semver.satisfies(parsedVersion, "^3.0.0")) {
+            const parsedVueFile = vueCompilerSfc.parse(text);
+            const isTypeScript =
+              parsedVueFile.script &&
+              (parsedVueFile.script.lang === "ts" ||
+                parsedVueFile.script.lang === "typescript");
+
+            //k可能是setup的方式
+            if (parsedVueFile.descriptor.script) {
+              const updatedScriptContent = removeConsoleLog(
+                parsedVueFile.descriptor.script.content,
+                isTypeScript
+              );
+              newText = text.replace(
+                parsedVueFile.descriptor.script.content,
+                updatedScriptContent
+              );
+            }
+            if (parsedVueFile.descriptor.scriptSetup) {
+              const updatedScriptContent = removeConsoleLog(
+                parsedVueFile.descriptor.scriptSetup.content
+              );
+              newText = text.replace(
+                parsedVueFile.descriptor.scriptSetup.content,
+                updatedScriptContent
+              );
+            }
           }
-        },
+        }
+        // const parsedVueFile = vueCompiler.parseComponent(text);
+        // if (parsedVueFile.script) {
+        //   const updatedScriptContent = removeConsoleLog(
+        //     parsedVueFile.script.content
+        //   );
+        //   newText = text.replace(
+        //     parsedVueFile.script.content,
+        //     updatedScriptContent
+        //   );
+        // }
+      }
+
+      const fullRange = new vscode.Range(
+        document.positionAt(0),
+        document.positionAt(text.length)
+      );
+
+      editor.edit((editBuilder: any) => {
+        editBuilder.replace(fullRange, newText);
       });
-      diagnosticCollection.set(editor.document.uri, diagnostics);
     }
   );
 
-  const removeDiagnosticCommand = vscode.commands.registerCommand(
-    "formatCheckCode.removeDiagnostic",
-    () => {
-      // 获取当前活动编辑器的 URI
-      const uri = vscode.window.activeTextEditor?.document.uri;
-      if (uri) {
-        // 从 DiagnosticCollection 中移除特定 URI 的错误信息
-        diagnosticCollection.delete(uri);
-      }
-    }
-  );
-  //如果要监听文本变化，可以使用下面的代码
-  // context.subscriptions.push(
-  //   vscode.workspace.onDidChangeTextDocument((e) => {
-  //     if (e.document.languageId === 'javascript') {
-  //       analyzeDocument(e.document);
-  //     }
-  //   })
-  // );
   context.subscriptions.push(disposable);
 }
+exports.activate = activate;
+
+function deactivate() {}
+
+module.exports = {
+  activate,
+  deactivate,
+};
